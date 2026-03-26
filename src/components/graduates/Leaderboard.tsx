@@ -1,11 +1,10 @@
-import { Award, RefreshCw, Search, Wallet } from "lucide-react";
+import { RefreshCw, Search, Wallet } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useAccount } from "wagmi";
 import { Input } from "@/components/ui/input";
 import Loader from "@/components/ui/loader";
 import { InfoTip, TermTip } from "@/components/ui/tooltip";
 import { CertificateModal } from "@/components/graduates/CertificateModal";
-import { CERTIFICATE_DEMO_RECORD } from "@/constants/certificateDemo";
 import { COPY } from "@/constants/publicCopy";
 import { useGraduates } from "@/hooks/useGraduates";
 import { unsupportedHallOfFameMessage } from "@/lib/chainMessages";
@@ -113,19 +112,6 @@ export function Leaderboard(): JSX.Element {
             </TermTip>
           </p>
         </div>
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-zinc-900/70 px-5 py-2.5 text-sm font-medium text-amber-100 transition-colors hover:border-amber-400/55 hover:bg-amber-950/35"
-            onClick={() => {
-              setSelected(CERTIFICATE_DEMO_RECORD);
-              setModalOpen(true);
-            }}
-          >
-            <Award className="h-4 w-4 shrink-0 text-amber-400" aria-hidden />
-            Preview sample diploma layout
-          </button>
-        </div>
       </header>
 
       {isConnected && address && chainSupported && (
@@ -213,7 +199,7 @@ export function Leaderboard(): JSX.Element {
             placeholder="0x address, attestation UID, name, or BR-001"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="border-zinc-700 bg-zinc-900/80 pl-10 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-amber-500/40"
+            className="border-zinc-700 bg-zinc-900/80 pl-10 text-base text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-amber-500/40 md:text-sm"
             autoComplete="off"
             spellCheck={false}
             maxLength={256}
