@@ -1,4 +1,5 @@
 import { defineChain } from "viem";
+import { getRootstockTestnetRpcUrls } from "@/lib/rootstockRpcUrls";
 
 /** For `eth_getLogs`, prefer Rootstock RPC Service: `https://rpc.testnet.rootstock.io/<api-key>`. */
 export const rsktestnet = defineChain({
@@ -11,11 +12,7 @@ export const rsktestnet = defineChain({
   },
   rpcUrls: {
     default: {
-      http: [
-        import.meta.env.VITE_ROOTSTOCK_TESTNET_RPC?.trim() ||
-          "https://rootstock-testnet.drpc.org",
-        "https://public-node.testnet.rsk.co",
-      ],
+      http: getRootstockTestnetRpcUrls(),
     },
   },
   blockExplorers: {

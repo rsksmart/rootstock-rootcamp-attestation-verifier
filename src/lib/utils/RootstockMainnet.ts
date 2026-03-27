@@ -1,5 +1,6 @@
 import { defineChain } from "viem";
 import { rootstock as rootstockViem } from "viem/chains";
+import { getRootstockMainnetRpcUrls } from "@/lib/rootstockRpcUrls";
 
 /**
  * Rootstock mainnet with RPC fallbacks aligned to EAS read client.
@@ -10,11 +11,7 @@ export const rootstockMainnet = defineChain({
   ...rootstockViem,
   rpcUrls: {
     default: {
-      http: [
-        import.meta.env.VITE_ROOTSTOCK_MAINNET_RPC?.trim(),
-        "https://rootstock.drpc.org",
-        "https://public-node.rsk.co",
-      ].filter((u): u is string => Boolean(u)),
+      http: getRootstockMainnetRpcUrls(),
     },
   },
 });

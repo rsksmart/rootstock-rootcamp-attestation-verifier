@@ -1,4 +1,4 @@
-import { ExternalLink, FileDown, ImageDown, X } from "lucide-react";
+import { ArrowLeft, ExternalLink, FileDown, ImageDown, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import QRCode from "react-qr-code";
 import { isDemoCertificate } from "@/constants/certificateDemo";
@@ -494,6 +494,17 @@ export function CertificateModal({
           <p className="text-center text-[11px] text-zinc-600">
             QR encodes the explorer verification link for sharing or print.
           </p>
+
+          <div className="border-t border-zinc-800 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-600 bg-zinc-900/90 px-4 py-3 text-sm font-medium text-zinc-100 transition-colors hover:border-amber-500/40 hover:bg-zinc-800 sm:py-2.5"
+            >
+              <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
+              Back to Hall of Fame
+            </button>
+          </div>
         </div>
       </div>
     </div>
