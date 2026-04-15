@@ -3,7 +3,7 @@
  */
 export function unsupportedHallOfFameMessage(chainId: number): string {
   if (chainId === 30) {
-    return "You are on Rootstock Mainnet, but this deployment has no mainnet Hall of Fame config yet. In Vercel: Project Settings, Environment Variables (Production). Set VITE_SCHEMA_UID_MAINNET and VITE_EAS_START_BLOCK_MAINNET from your RAS schema on the mainnet explorer, plus VITE_ROOTSTOCK_MAINNET_RPC for reliable eth_getLogs. Redeploy. Or switch to Rootstock Testnet (chain 31) for the default Builder Rootcamp cohort.";
+    return "You are on Rootstock Mainnet, but this build could not load EAS config for chain 30. Redeploy from the latest portal code, or set VITE_SCHEMA_UID_MAINNET / VITE_EAS_START_BLOCK_MAINNET only if you use a custom schema. For reliable Hall of Fame indexing, set VITE_ROOTSTOCK_MAINNET_RPC (supports eth_getLogs). Or switch to Rootstock Testnet (chain 31).";
   }
-  return "Switch to Rootstock Testnet (chain 31) for the default Builder Rootcamp Hall of Fame, or set mainnet variables in Vercel and redeploy.";
+  return "Switch to Rootstock Testnet (chain 31) or Rootstock Mainnet (chain 30) for the Builder Rootcamp Hall of Fame.";
 }

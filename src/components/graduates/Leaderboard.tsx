@@ -8,6 +8,11 @@ import { CertificateModal } from "@/components/graduates/CertificateModal";
 import { COPY } from "@/constants/publicCopy";
 import { useGraduates } from "@/hooks/useGraduates";
 import { unsupportedHallOfFameMessage } from "@/lib/chainMessages";
+import {
+  formatDecodedCompletionDate,
+  safeExternalHref,
+  truncateMiddle,
+} from "@/lib/graduateDisplay";
 import { cn, formatAddress } from "@/lib/utils";
 import type { GraduateRecord } from "@/lib/types/graduate";
 
@@ -147,9 +152,14 @@ export function Leaderboard(): JSX.Element {
                       {g.decoded.participantName}
                     </p>
                     <p className="text-sm text-zinc-500">
-                      {g.decoded.courseName} · {g.decoded.credentialId} ·{" "}
-                      {g.decoded.completionDate}
+                      {g.decoded.courseName} · {g.decoded.credentialId} · Year{" "}
+                      {formatDecodedCompletionDate(g.decoded.completionDate)}
                     </p>
+                    {g.decoded.projectTitle.trim() ? (
+                      <p className="text-xs text-zinc-600">
+                        Capstone: {g.decoded.projectTitle}
+                      </p>
+                    ) : null}
                   </div>
                   <button
                     type="button"
@@ -196,7 +206,7 @@ export function Leaderboard(): JSX.Element {
           />
           <Input
             type="search"
-            placeholder="0x address, attestation UID, name, or BR-001"
+            placeholder="0x address, attestation UID, name, BR-C1-001, or capstone"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="border-zinc-700 bg-zinc-900/80 pl-10 text-base text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-amber-500/40 md:text-sm"
@@ -290,12 +300,13 @@ export function Leaderboard(): JSX.Element {
       ) : (
         <div className="overflow-hidden rounded-xl border border-amber-500/20 bg-zinc-950/60 shadow-lg shadow-black/40">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-left text-sm">
+            <table className="w-full min-w-[720px] text-left text-sm">
               <thead>
                 <tr className="border-b border-amber-500/20 bg-zinc-900/90 text-xs uppercase tracking-wider text-amber-500/80">
                   <th className="px-4 py-3 font-medium">Name</th>
                   <th className="px-4 py-3 font-medium">Credential</th>
                   <th className="px-4 py-3 font-medium">Year</th>
+                  <th className="px-4 py-3 font-medium">Capstone</th>
                   <th className="px-4 py-3 font-medium">Recipient</th>
                 </tr>
               </thead>
@@ -303,14 +314,16 @@ export function Leaderboard(): JSX.Element {
                 {graduates.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={4}
+                      colSpan={5}
                       className="px-4 py-12 text-center text-zinc-500"
                     >
                       No matching graduates. Try another address or UID.
                     </td>
                   </tr>
                 ) : (
-                  graduates.map((g) => (
+                  graduates.map((g) => {
+                    const capstoneHref = safeExternalHref(g.decoded.projectURL);
+                    return (
                     <tr
                       key={g.uid}
                       className="cursor-pointer transition-colors hover:bg-amber-950/20 focus-within:bg-amber-950/20"
@@ -348,8 +361,39 @@ export function Leaderboard(): JSX.Element {
                             setModalOpen(true);
                           }}
                         >
-                          {g.decoded.completionDate}
+                          {formatDecodedCompletionDate(g.decoded.completionDate)}
                         </button>
+                      </td>
+                      <td className="max-w-[200px] px-4 py-3 text-zinc-400">
+                        <div className="flex flex-col gap-1">
+                          <button
+                            type="button"
+                            className="truncate text-left hover:text-amber-400 focus:outline-none focus-visible:text-amber-400"
+                            title={
+                              g.decoded.projectTitle.trim() || undefined
+                            }
+                            onClick={() => {
+                              setSelected(g);
+                              setModalOpen(true);
+                            }}
+                          >
+                            {g.decoded.projectTitle.trim()
+                              ? truncateMiddle(g.decoded.projectTitle.trim(), 36)
+                              : "—"}
+                          </button>
+                          {capstoneHref ? (
+                            <a
+                              href={capstoneHref}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="truncate text-left font-mono text-[11px] text-amber-500/90 underline-offset-2 hover:underline"
+                              title={capstoneHref}
+                            >
+                              {truncateMiddle(capstoneHref, 28)}
+                            </a>
+                          ) : null}
+                        </div>
                       </td>
                       <td className="px-4 py-3">
                         <button
@@ -364,7 +408,8 @@ export function Leaderboard(): JSX.Element {
                         </button>
                       </td>
                     </tr>
-                  ))
+                    );
+                  })
                 )}
               </tbody>
             </table>

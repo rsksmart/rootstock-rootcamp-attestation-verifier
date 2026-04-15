@@ -41,4 +41,11 @@ export const COPY = {
     /** Developer docs for RAS / EAS integration. */
     docsUrl: "https://dev.rootstock.io/dev-tools/attestations/ras/",
   },
+  /** Shown next to the official attester line in the footer (address is injected from code). */
+  trust: {
+    officialAttesterIntro:
+      "Official Builder Rootcamp attestations are signed on-chain by ",
+    officialAttesterOutro:
+      ". Compare this address to the attester shown in a certificate’s technical details.",
+  },
 } as const;

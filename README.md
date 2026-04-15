@@ -76,13 +76,19 @@ Deployed as a static **Vite + React** SPA; designed for **[Vercel](https://verce
 | `VITE_WC_PROJECT_ID` | Yes (wallets) | WalletConnect project ID. Public in the bundle. |
 | `VITE_ROOTSTOCK_TESTNET_RPC` | Strongly recommended | RPC URL with `eth_getLogs` support for the default testnet Hall of Fame. |
 | `VITE_SITE_URL` | Recommended for production | HTTPS origin, no trailing slash. Used at **build** time for Open Graph, Twitter cards, and canonical URL. |
-| `VITE_SCHEMA_UID_MAINNET` | For mainnet Hall of Fame | Together with `VITE_EAS_START_BLOCK_MAINNET`, enables chain **30**. |
-| `VITE_EAS_START_BLOCK_MAINNET` | With schema UID | First block to scan for `Attested` events (from RAS explorer). |
-| `VITE_ROOTSTOCK_MAINNET_RPC` | Recommended on mainnet | Same role as testnet RPC for log queries. |
+| `VITE_SCHEMA_UID_MAINNET` | Optional override | Defaults are baked in for the current graduate schema; set only if you change the on-chain schema without shipping new code. |
+| `VITE_EAS_START_BLOCK_MAINNET` | Optional override | Same as above; decimal registration block from the RAS explorer. |
+| `VITE_ROOTSTOCK_MAINNET_RPC` | Recommended on mainnet | Same role as testnet RPC for reliable `eth_getLogs` Hall of Fame scans. |
 | `VITE_EAS_CONTRACT_MAINNET` | Optional | Override EAS core address if RAS deployments change. |
 | `VITE_RAS_ATTESTATION_BASE_MAINNET` | Optional | Override explorer base URL for attestation links. |
 
 User-facing copy about Thinkific vs on-chain verification lives in `src/constants/publicCopy.ts`.
+
+For the current graduate schema (`0x4fbc...fc58`), `completionDate` is stored as a `uint16` year-style value (for example `2026`) and shown in the UI as **Year**.
+
+## Trust and verification (official attester)
+
+Official Builder Rootcamp on-chain attestations are expected to be signed by the wallet in `ROOTCAMP_OFFICIAL_ATTESTER` in [`src/constants/eas.ts`](./src/constants/eas.ts). The footer and certificate modal (“On-chain verification and technical details”) help graduates and support staff compare that address to the `attester` field read from EAS.
 
 ## Deploy to Vercel
 
@@ -90,14 +96,15 @@ User-facing copy about Thinkific vs on-chain verification lives in `src/constant
 2. In Vercel: **Add New Project**, import the repo. Framework preset: **Vite**.
 3. **Environment Variables:** add the same keys you use locally (`VITE_*`). Use the **Production** environment for your live site. Optionally use **Preview** for PRs with separate RPC keys or without `VITE_SITE_URL` if you do not care about preview OG URLs.
 4. **Deploy.** After any change to `VITE_*`, trigger a **new deployment** so the client bundle is rebuilt.
-5. **Mainnet:** follow the mainnet RAS schema on [explorer.rootstock.io](https://explorer.rootstock.io/ras/schemas), set `VITE_SCHEMA_UID_MAINNET`, `VITE_EAS_START_BLOCK_MAINNET`, and `VITE_ROOTSTOCK_MAINNET_RPC` on Production, then redeploy.
+5. **Mainnet:** schema UID and log scan start block are **defaults in `src/constants/eas.ts`**—a normal Vercel deploy picks them up when you merge to the connected branch. Add `VITE_ROOTSTOCK_MAINNET_RPC` in Production for reliable indexing. Use `VITE_SCHEMA_UID_MAINNET` / `VITE_EAS_START_BLOCK_MAINNET` only to override without a code change.
 
 ### Production checklist
 
 - [ ] `VITE_WC_PROJECT_ID` set for Production  
 - [ ] `VITE_ROOTSTOCK_TESTNET_RPC` (and mainnet RPC if using chain 30) set for reliable indexing  
 - [ ] `VITE_SITE_URL` matches your public HTTPS URL (no trailing slash)  
-- [ ] Mainnet schema UID + start block set if you serve the Hall of Fame on chain 30  
+- [ ] `VITE_ROOTSTOCK_MAINNET_RPC` set in Production if you expect a full mainnet Hall of Fame (optional overrides: schema UID / start block env vars)  
+- [ ] If the production attester wallet changes, update `ROOTCAMP_OFFICIAL_ATTESTER` in `src/constants/eas.ts` and redeploy  
 
 ## Social / SEO
 

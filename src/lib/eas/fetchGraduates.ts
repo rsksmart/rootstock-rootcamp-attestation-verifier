@@ -1,7 +1,8 @@
-import { SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
-import { EAS__factory } from "@ethereum-attestation-service/eas-contracts";
 import {
+  decodeAbiParameters,
   decodeEventLog,
+  parseAbi,
+  parseAbiParameters,
   type Hex,
   type Log,
   type PublicClient,
@@ -10,7 +11,9 @@ import {
   ATTESTATION_MULTICALL_BATCH,
   ATTESTED_EVENT_TOPIC0,
   LOG_CHUNK_BLOCKS,
-  RAS_SCHEMA_RAW,
+  RAS_SCHEMA_RAW_GRADUATE,
+  RAS_SCHEMA_RAW_LEGACY,
+  RAS_SCHEMA_RAW_MAINNET,
   type EasChainConfig,
 } from "@/constants/eas";
 import type {
@@ -18,62 +21,103 @@ import type {
   GraduateRecord,
 } from "@/lib/types/graduate";
 
-const easAbi = EAS__factory.abi;
+const easAbi = parseAbi([
+  "function getAttestation(bytes32 uid) view returns (bytes32 uid, bytes32 schema, uint64 time, uint64 expirationTime, uint64 revocationTime, bytes32 refUID, address recipient, address attester, bool revocable, bytes data)",
+  "event Attested(address indexed recipient, address indexed attester, bytes32 uid, bytes32 indexed schema)",
+]);
 
-const schemaEncoder = new SchemaEncoder(RAS_SCHEMA_RAW);
+const SCHEMA_PARAMS_LEGACY = parseAbiParameters(
+  "string participantName, string courseName, uint16 completionDate, string credentialId, bool isGraduated",
+);
+const SCHEMA_PARAMS_GRADUATE = parseAbiParameters(
+  "string participantName, string courseName, uint16 completionDate, string credentialId, bool isGraduated, string projectTitle, string projectURL",
+);
+const SCHEMA_PARAMS_MAINNET = parseAbiParameters(
+  "string participantName, string courseName, uint256 completionDate, string credentialId, bool isGraduated, string projectTitle, string projectURL",
+);
 
-type DecodedRow = ReturnType<SchemaEncoder["decodeData"]>[number];
-
-function extractPrimitive(row: DecodedRow): unknown {
-  const inner = row.value;
-  if (
-    inner &&
-    typeof inner === "object" &&
-    inner !== null &&
-    "value" in inner
-  ) {
-    return (inner as { value: unknown }).value;
-  }
-  return undefined;
+function toCompletionBig(v: unknown): bigint | null {
+  if (typeof v === "bigint") return v;
+  if (typeof v === "number" && Number.isFinite(v)) return BigInt(Math.trunc(v));
+  return null;
 }
 
-function toDecodedFields(data: Hex): DecodedAttestationFields | null {
+function toDecodedFields(
+  data: Hex,
+  cfg: EasChainConfig,
+): DecodedAttestationFields | null {
   try {
-    const rows = schemaEncoder.decodeData(data);
-    const byName = Object.fromEntries(
-      rows.map((r) => [r.name, extractPrimitive(r)]),
-    );
-    const participantName = byName.participantName;
-    const courseName = byName.courseName;
-    const completionDate = byName.completionDate;
-    const credentialId = byName.credentialId;
-    const isGraduated = byName.isGraduated;
-
-    if (
-      typeof participantName !== "string" ||
-      typeof courseName !== "string" ||
-      (typeof completionDate !== "number" && typeof completionDate !== "bigint") ||
-      typeof credentialId !== "string" ||
-      typeof isGraduated !== "boolean"
-    ) {
-      return null;
+    if (cfg.schemaRaw === RAS_SCHEMA_RAW_LEGACY) {
+      const decoded = decodeAbiParameters(SCHEMA_PARAMS_LEGACY, data);
+      const [participantName, courseName, completionDate, credentialId, isGraduated] =
+        decoded;
+      const completionBig = toCompletionBig(completionDate);
+      if (completionBig === null) return null;
+      if (completionBig < 0n || completionBig > 65535n) {
+        return null;
+      }
+      return {
+        participantName,
+        courseName,
+        completionDate: completionBig,
+        credentialId,
+        isGraduated,
+        projectTitle: "",
+        projectURL: "",
+      };
     }
 
-    const year =
-      typeof completionDate === "bigint"
-        ? Number(completionDate)
-        : completionDate;
+    if (cfg.schemaRaw === RAS_SCHEMA_RAW_GRADUATE) {
+      const decoded = decodeAbiParameters(SCHEMA_PARAMS_GRADUATE, data);
+      const [
+        participantName,
+        courseName,
+        completionDate,
+        credentialId,
+        isGraduated,
+        projectTitle,
+        projectURL,
+      ] = decoded;
+      const completionBig = toCompletionBig(completionDate);
+      if (completionBig === null) return null;
+      if (completionBig < 0n || completionBig > 65535n) {
+        return null;
+      }
+      return {
+        participantName,
+        courseName,
+        completionDate: completionBig,
+        credentialId,
+        isGraduated,
+        projectTitle,
+        projectURL,
+      };
+    }
 
-    if (!Number.isFinite(year) || year < 0 || year > 65535) {
+    if (cfg.schemaRaw !== RAS_SCHEMA_RAW_MAINNET) {
       return null;
     }
+    const decoded = decodeAbiParameters(SCHEMA_PARAMS_MAINNET, data);
+    const [
+      participantName,
+      courseName,
+      completionDate,
+      credentialId,
+      isGraduated,
+      projectTitle,
+      projectURL,
+    ] = decoded;
+    const completionBig = toCompletionBig(completionDate);
+    if (completionBig === null || completionBig < 0n) return null;
 
     return {
       participantName,
       courseName,
-      completionDate: year,
+      completionDate: completionBig,
       credentialId,
       isGraduated,
+      projectTitle,
+      projectURL,
     };
   } catch {
     return null;
@@ -168,7 +212,7 @@ export function parseGetAttestationResult(
   if (t.schema.toLowerCase() !== cfg.schemaUid.toLowerCase()) return null;
   if (t.revocationTime !== 0n) return null;
 
-  const decoded = toDecodedFields(t.data);
+  const decoded = toDecodedFields(t.data, cfg);
   if (!decoded) return null;
 
   return {
