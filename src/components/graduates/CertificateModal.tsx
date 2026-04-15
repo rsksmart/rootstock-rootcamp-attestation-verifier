@@ -2,7 +2,7 @@ import { ArrowLeft, ExternalLink, FileDown, ImageDown, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import QRCode from "react-qr-code";
 import { isDemoCertificate } from "@/constants/certificateDemo";
-import { rasAttestationUrl } from "@/constants/eas";
+import { rasAttestationUrl, ROOTCAMP_OFFICIAL_ATTESTER } from "@/constants/eas";
 import {
   CERTIFICATE_BACKGROUND_PATH,
   COPY,
@@ -11,6 +11,10 @@ import {
   exportElementAsPdf,
   exportElementAsPng,
 } from "@/lib/certificateExport";
+import {
+  formatDecodedCompletionDate,
+  safeExternalHref,
+} from "@/lib/graduateDisplay";
 import { cn, formatAddress } from "@/lib/utils";
 import type { GraduateRecord } from "@/lib/types/graduate";
 
@@ -45,6 +49,38 @@ function formatUnixDate(sec: bigint): string {
   } catch {
     return "N/A";
   }
+}
+
+function CapstoneSummaryBlock({
+  graduate,
+}: {
+  graduate: GraduateRecord;
+}): JSX.Element | null {
+  const href = safeExternalHref(graduate.decoded.projectURL);
+  const title = graduate.decoded.projectTitle.trim();
+  if (!title && !href) return null;
+
+  return (
+    <div className="rounded-lg border border-zinc-700 bg-zinc-900/70 px-4 py-3 text-left">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+        Capstone project
+      </p>
+      {title ? (
+        <p className="mt-1.5 text-sm font-medium text-zinc-200">{title}</p>
+      ) : null}
+      {href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 inline-flex max-w-full items-start gap-1.5 break-all text-sm text-amber-400/95 hover:underline"
+        >
+          <span className="min-w-0">{href}</span>
+          <ExternalLink className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+        </a>
+      ) : null}
+    </div>
+  );
 }
 
 type FallbackProps = {
@@ -142,9 +178,9 @@ function DiplomaFallbackLayout({
             {graduate.decoded.courseName}
           </p>
           <p className="mt-2 text-sm text-zinc-500">
-            Completion year{" "}
+            Year{" "}
             <span className="font-mono text-zinc-300">
-              {graduate.decoded.completionDate}
+              {formatDecodedCompletionDate(graduate.decoded.completionDate)}
             </span>
             {" · "}
             <span
@@ -249,15 +285,14 @@ function OfficialDiplomaLayer({
         </p>
 
         <p className="mt-[6%] max-w-[78%] text-[length:clamp(0.55rem,1.25vw,0.8rem)] leading-snug text-zinc-500">
-          {graduate.decoded.courseName} · {graduate.decoded.completionDate}{" "}
-          ·{" "}
+          {graduate.decoded.courseName} · Year{" "}
+          {formatDecodedCompletionDate(graduate.decoded.completionDate)} ·{" "}
           {graduate.decoded.isGraduated ? (
             <span className="text-emerald-400/90">Graduated</span>
           ) : (
             <span className="text-amber-600">Not graduated</span>
           )}
         </p>
-
         <div className="pointer-events-auto absolute bottom-[10%] right-[6%] rounded-md bg-white p-1.5 shadow-md shadow-black/40">
           <QRCode value={qrValue} size={72} level="M" />
         </div>
@@ -318,6 +353,7 @@ export function CertificateModal({
 
   const safeSlug = graduate.decoded.credentialId.replace(/[^\w.-]+/g, "_");
   const baseName = `rootcamp-${safeSlug}-ras`;
+  const projectUrlHref = safeExternalHref(graduate.decoded.projectURL);
 
   const runExport = async (kind: "png" | "pdf") => {
     const el = diplomaCaptureRef.current;
@@ -338,7 +374,7 @@ export function CertificateModal({
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-6"
+      className="fixed inset-0 z-[200] flex justify-end"
       role="presentation"
     >
       <button
@@ -349,14 +385,13 @@ export function CertificateModal({
       />
       <div
         className={cn(
-          "relative z-[201] w-full max-w-4xl overflow-hidden rounded-2xl border border-amber-500/25 bg-zinc-950 shadow-2xl shadow-amber-950/40",
-          "max-h-[min(94vh,920px)] overflow-y-auto",
+          "relative z-[201] flex h-full w-full max-w-[min(100vw,52rem)] flex-col overflow-hidden border-l border-amber-500/25 bg-zinc-950 shadow-2xl shadow-amber-950/40",
         )}
         role="dialog"
         aria-modal="true"
         aria-labelledby="cert-title"
       >
-        <div className="relative flex flex-wrap items-start justify-end gap-2 border-b border-white/10 px-4 py-3 sm:px-6">
+        <div className="relative flex shrink-0 flex-wrap items-start justify-end gap-2 border-b border-white/10 px-4 py-3 sm:px-6">
           <div className="mr-auto max-w-[min(100%,32rem)] space-y-2 text-left">
             {demo && (
               <p className="text-xs text-amber-200/90">
@@ -381,7 +416,8 @@ export function CertificateModal({
           </button>
         </div>
 
-        <div className="space-y-6 px-4 py-6 sm:px-6">
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="space-y-6 px-4 py-6 sm:px-6">
           <div ref={diplomaCaptureRef} className="mx-auto w-full space-y-4">
             {!artFailed ? (
               <OfficialDiplomaLayer
@@ -405,6 +441,7 @@ export function CertificateModal({
                 </div>
               </>
             )}
+            <CapstoneSummaryBlock graduate={graduate} />
           </div>
 
           <details className="group rounded-xl border border-zinc-800 bg-zinc-950/80 open:border-amber-900/40">
@@ -414,6 +451,67 @@ export function CertificateModal({
               </span>
             </summary>
             <div className="space-y-3 border-t border-zinc-800 px-4 py-4 text-left text-xs text-zinc-400">
+              <p className="font-medium text-zinc-300">Decoded attestation fields</p>
+              <p>
+                <span className="text-zinc-500">participantName: </span>
+                <span className="text-zinc-300">
+                  {graduate.decoded.participantName}
+                </span>
+              </p>
+              <p>
+                <span className="text-zinc-500">courseName: </span>
+                <span className="text-zinc-300">
+                  {graduate.decoded.courseName}
+                </span>
+              </p>
+              <p>
+                <span className="text-zinc-500">
+                  completionYear (schema field: completionDate):{" "}
+                </span>
+                <span className="font-mono text-zinc-300">
+                  {graduate.decoded.completionDate.toString()}
+                </span>
+                <span className="text-zinc-600">
+                  {" "}
+                  (
+                  {formatDecodedCompletionDate(graduate.decoded.completionDate)})
+                </span>
+              </p>
+              <p>
+                <span className="text-zinc-500">credentialId: </span>
+                <span className="font-mono text-zinc-300">
+                  {graduate.decoded.credentialId}
+                </span>
+              </p>
+              <p>
+                <span className="text-zinc-500">isGraduated: </span>
+                <span className="text-zinc-300">
+                  {graduate.decoded.isGraduated ? "true" : "false"}
+                </span>
+              </p>
+              <p>
+                <span className="text-zinc-500">projectTitle: </span>
+                <span className="text-zinc-300">
+                  {graduate.decoded.projectTitle.trim() || "—"}
+                </span>
+              </p>
+              <p>
+                <span className="text-zinc-500">projectURL: </span>
+                {projectUrlHref ? (
+                  <a
+                    href={projectUrlHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="break-all font-mono text-amber-400/90 hover:underline"
+                  >
+                    {projectUrlHref}
+                  </a>
+                ) : (
+                  <span className="text-zinc-500">
+                    {graduate.decoded.projectURL.trim() || "—"}
+                  </span>
+                )}
+              </p>
               <p>
                 <span className="text-zinc-500">Verification URL: </span>
                 <a
@@ -436,6 +534,18 @@ export function CertificateModal({
                 <span className="break-all font-mono text-zinc-300">
                   {graduate.recipient}
                 </span>
+              </p>
+              <p>
+                <span className="text-zinc-500">Attester: </span>
+                <span className="break-all font-mono text-zinc-300">
+                  {graduate.attester}
+                </span>
+                {graduate.attester.toLowerCase() ===
+                ROOTCAMP_OFFICIAL_ATTESTER.toLowerCase() ? (
+                  <span className="ml-1 text-emerald-500/90">
+                    (matches documented official attester)
+                  </span>
+                ) : null}
               </p>
               <p className="text-zinc-500">
                 Short address: {formatAddress(graduate.recipient)}
@@ -504,6 +614,7 @@ export function CertificateModal({
               <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
               Back to Hall of Fame
             </button>
+          </div>
           </div>
         </div>
       </div>

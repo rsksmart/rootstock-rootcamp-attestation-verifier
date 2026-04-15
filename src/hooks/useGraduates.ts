@@ -38,7 +38,14 @@ function filterGraduates(
   return list.filter((g) => {
     const name = g.decoded.participantName.toLowerCase();
     const cred = g.decoded.credentialId.toLowerCase();
-    return name.includes(q) || cred.includes(q);
+    const project = g.decoded.projectTitle.toLowerCase();
+    const url = g.decoded.projectURL.toLowerCase();
+    return (
+      name.includes(q) ||
+      cred.includes(q) ||
+      project.includes(q) ||
+      url.includes(q)
+    );
   });
 }
 

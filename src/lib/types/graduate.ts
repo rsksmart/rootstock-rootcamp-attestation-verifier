@@ -4,9 +4,13 @@ import type { Hex } from "viem";
 export interface DecodedAttestationFields {
   participantName: string;
   courseName: string;
-  completionDate: number;
+  /** Current schema: uint16 (e.g. year-style code). Legacy uint256 Unix timestamps possible if using old mainnet schema. */
+  completionDate: bigint;
   credentialId: string;
   isGraduated: boolean;
+  /** Mainnet schema; empty strings on legacy attestations. */
+  projectTitle: string;
+  projectURL: string;
 }
 
 /** One graduate row for the Hall of Fame + certificate modal. */
