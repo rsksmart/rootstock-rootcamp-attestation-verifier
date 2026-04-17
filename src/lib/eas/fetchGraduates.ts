@@ -22,7 +22,8 @@ import type {
 } from "@/lib/types/graduate";
 
 const easAbi = parseAbi([
-  "function getAttestation(bytes32 uid) view returns (bytes32 uid, bytes32 schema, uint64 time, uint64 expirationTime, uint64 revocationTime, bytes32 refUID, address recipient, address attester, bool revocable, bytes data)",
+  /** Wrapped tuple: Rootstock EAS returns a struct with dynamic `bytes data`, so ABI encoding begins with a head offset. */
+  "function getAttestation(bytes32 uid) view returns ((bytes32 uid, bytes32 schema, uint64 time, uint64 expirationTime, uint64 revocationTime, bytes32 refUID, address recipient, address attester, bool revocable, bytes data))",
   "event Attested(address indexed recipient, address indexed attester, bytes32 uid, bytes32 indexed schema)",
 ]);
 
