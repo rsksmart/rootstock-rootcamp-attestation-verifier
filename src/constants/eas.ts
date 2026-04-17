@@ -19,34 +19,55 @@ export const RAS_TESTNET_ADDRESSES = {
 } as const;
 
 /**
- * Must match on-chain schema text (RAS explorer “Raw Schema”).
- * @see https://explorer.testnet.rootstock.io/ras/schema/0xd042cfc03432b5c8d4a45027237f343803e1d9a77bf005d8fd353af2b3f4652a
- *
- * **Schema gaps vs Thinkific / marketing diploma:** the payload does not include
- * `certificateUrl`, `projectUrl`, `projectTitle`, or `projectDescription`. Those
- * would require registering a **new** EAS schema, migrating issuance, and
- * updating this app’s `RAS_SCHEMA_RAW` + decode logic. Short-term options:
- * derive a canonical “certificate URL” in the UI as the RAS explorer link
- * (`rasAttestationUrl`), or store rich metadata off-chain (IPFS) and add a
- * single `string metadataUri` field in a future schema revision.
+ * Wallet that signs official Builder Rootcamp graduate attestations.
+ * Documented for verification support; compare to the `attester` field on each attestation.
+ */
+export const ROOTCAMP_OFFICIAL_ATTESTER = getAddress(
+  "0x4ade69a62bc8cb24b005a34097ed8d8d650a4687",
+);
+
+/**
+ * Must match on-chain schema text (RAS explorer “Raw Schema”) for each chain.
  *
  * **Already on EAS (not in schema string):** `time` (issued) and
  * `expirationTime` (we surface these from `getAttestation`).
  */
-export const RAS_SCHEMA_RAW =
+/** Legacy cohort (no capstone fields). Only used to decode old attestations if configured. */
+export const RAS_SCHEMA_RAW_LEGACY =
   "string participantName, string courseName, uint16 completionDate, string credentialId, bool isGraduated";
+
+/**
+ * Current Builder Rootcamp graduate schema on Rootstock mainnet and testnet (same UID on both).
+ * @see https://explorer.rootstock.io/ras/schema/0x4fbc7a0df4411f9369f05b8f4d5f716d5bdbeab7255ee1c867b2c6fe73a6fc58
+ * @see https://explorer.testnet.rootstock.io/ras/schema/0x4fbc7a0df4411f9369f05b8f4d5f716d5bdbeab7255ee1c867b2c6fe73a6fc58
+ */
+export const RAS_SCHEMA_RAW_GRADUATE =
+  "string participantName, string courseName, uint16 completionDate, string credentialId, bool isGraduated, string projectTitle, string projectURL";
+
+/** Previous mainnet-only schema (uint256 completion). Kept for forks / custom env overrides. */
+export const RAS_SCHEMA_RAW_MAINNET =
+  "string participantName, string courseName, uint256 completionDate, string credentialId, bool isGraduated, string projectTitle, string projectURL";
 
 /** EAS core on Rootstock Testnet. Used for `getAttestation` and log filters. */
 export const EAS_CONTRACT_TESTNET: Address = RAS_TESTNET_ADDRESSES.eas;
 
-export const SCHEMA_UID_TESTNET: Hex =
-  "0xd042cfc03432b5c8d4a45027237f343803e1d9a77bf005d8fd353af2b3f4652a";
+/** Shared graduate schema UID (registered on chain 30 and 31). */
+export const SCHEMA_UID_GRADUATE: Hex =
+  "0x4fbc7a0df4411f9369f05b8f4d5f716d5bdbeab7255ee1c867b2c6fe73a6fc58";
+
+export const SCHEMA_UID_TESTNET: Hex = SCHEMA_UID_GRADUATE;
 
 /**
- * Block where the sample schema was registered (tx registering schema on SchemaRegistry).
- * From: https://explorer.testnet.rootstock.io/ras/schema/0xd042cfc03432b5c8d4a45027237f343803e1d9a77bf005d8fd353af2b3f4652a
+ * Block of schema registration on Rootstock Testnet.
+ * @see https://explorer.testnet.rootstock.io/block/7548782
  */
-export const START_BLOCK_TESTNET = 7_458_638n;
+export const START_BLOCK_TESTNET = 7_548_782n;
+
+/**
+ * Block of schema registration on Rootstock Mainnet.
+ * @see https://explorer.rootstock.io/block/8728675
+ */
+export const START_BLOCK_MAINNET = 8_728_675n;
 
 export const ATTESTED_EVENT_TOPIC0 = getEventSelector(
   "Attested(address,address,bytes32,bytes32)",
@@ -69,9 +90,20 @@ export type EasChainConfig = {
   schemaUid: Hex;
   startBlock: bigint;
   rasAttestationBaseUrl: string;
+  /** Must match the registered schema for `schemaUid` (used by ABI decoding). */
+  schemaRaw: string;
 };
 
 export const EAS_CHAIN_CONFIG: Record<number, EasChainConfig> = {
+  30: {
+    chainId: 30,
+    easAddress: RAS_MAINNET_ADDRESSES.eas,
+    schemaUid: SCHEMA_UID_GRADUATE,
+    startBlock: START_BLOCK_MAINNET,
+    rasAttestationBaseUrl:
+      "https://explorer.rootstock.io/ras/attestation",
+    schemaRaw: RAS_SCHEMA_RAW_GRADUATE,
+  },
   31: {
     chainId: 31,
     easAddress: EAS_CONTRACT_TESTNET,
@@ -79,6 +111,7 @@ export const EAS_CHAIN_CONFIG: Record<number, EasChainConfig> = {
     startBlock: START_BLOCK_TESTNET,
     rasAttestationBaseUrl:
       "https://explorer.testnet.rootstock.io/ras/attestation",
+    schemaRaw: RAS_SCHEMA_RAW_GRADUATE,
   },
 };
 
@@ -102,37 +135,58 @@ function readOptionalBigIntEnv(value: string | undefined): bigint | undefined {
   return BigInt(value);
 }
 
+type MergeFromEnvOptions = {
+  chainId: 30 | 31;
+  easContractEnv?: string;
+  schemaUidEnv?: string;
+  startBlockEnv?: string;
+  attestationBaseEnv?: string;
+};
+
 /**
- * Merge optional mainnet Hall of Fame config from env (e.g. Vercel).
- * Required: `VITE_SCHEMA_UID_MAINNET` + `VITE_EAS_START_BLOCK_MAINNET` (decimal block).
- * Find the schema UID and registration block on
- * [Rootstock mainnet RAS explorer](https://explorer.rootstock.io/ras/schemas).
- * EAS contract defaults to official RAS mainnet unless `VITE_EAS_CONTRACT_MAINNET` is set.
+ * Merge optional chain overrides from env (e.g. Vercel).
+ * Keeps mainnet/testnet behavior consistent while avoiding repeated logic.
  */
-function mergeMainnetFromEnv(): void {
-  const easOverride = readOptionalAddressEnv(
-    import.meta.env.VITE_EAS_CONTRACT_MAINNET,
-  );
-  const eas = easOverride ?? RAS_MAINNET_ADDRESSES.eas;
-  const schema = readOptionalHexEnv(import.meta.env.VITE_SCHEMA_UID_MAINNET);
-  const start = readOptionalBigIntEnv(
-    import.meta.env.VITE_EAS_START_BLOCK_MAINNET,
-  );
-  const base =
-    import.meta.env.VITE_RAS_ATTESTATION_BASE_MAINNET?.trim() ||
-    "https://explorer.rootstock.io/ras/attestation";
-  if (schema && start !== undefined) {
-    EAS_CHAIN_CONFIG[30] = {
-      chainId: 30,
-      easAddress: eas,
-      schemaUid: schema,
-      startBlock: start,
-      rasAttestationBaseUrl: base.replace(/\/$/, ""),
-    };
-  }
+function mergeChainFromEnv({
+  chainId,
+  easContractEnv,
+  schemaUidEnv,
+  startBlockEnv,
+  attestationBaseEnv,
+}: MergeFromEnvOptions): void {
+  const cfg = EAS_CHAIN_CONFIG[chainId];
+  if (!cfg) return;
+
+  const easOverride = readOptionalAddressEnv(easContractEnv);
+  const schema = readOptionalHexEnv(schemaUidEnv);
+  const start = readOptionalBigIntEnv(startBlockEnv);
+  const base = attestationBaseEnv?.trim() || cfg.rasAttestationBaseUrl;
+
+  EAS_CHAIN_CONFIG[chainId] = {
+    ...cfg,
+    easAddress: easOverride ?? cfg.easAddress,
+    schemaUid: schema ?? cfg.schemaUid,
+    startBlock: start !== undefined ? start : cfg.startBlock,
+    rasAttestationBaseUrl: base.replace(/\/$/, ""),
+  };
 }
 
-mergeMainnetFromEnv();
+// Apply per-chain env overrides once at startup (testnet and mainnet separately).
+mergeChainFromEnv({
+  chainId: 31,
+  easContractEnv: import.meta.env.VITE_EAS_CONTRACT_TESTNET,
+  schemaUidEnv: import.meta.env.VITE_SCHEMA_UID_TESTNET,
+  startBlockEnv: import.meta.env.VITE_EAS_START_BLOCK_TESTNET,
+  attestationBaseEnv: import.meta.env.VITE_RAS_ATTESTATION_BASE_TESTNET,
+});
+
+mergeChainFromEnv({
+  chainId: 30,
+  easContractEnv: import.meta.env.VITE_EAS_CONTRACT_MAINNET,
+  schemaUidEnv: import.meta.env.VITE_SCHEMA_UID_MAINNET,
+  startBlockEnv: import.meta.env.VITE_EAS_START_BLOCK_MAINNET,
+  attestationBaseEnv: import.meta.env.VITE_RAS_ATTESTATION_BASE_MAINNET,
+});
 
 export function getEasConfig(chainId: number): EasChainConfig | undefined {
   return EAS_CHAIN_CONFIG[chainId];
