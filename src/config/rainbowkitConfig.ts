@@ -25,8 +25,8 @@ function transportFromRpcUrls(urls: string[]): Transport {
 export const rainbowkitConfig = getDefaultConfig({
   appName: "Builder Rootcamp Verifier",
   projectId: import.meta.env.VITE_WC_PROJECT_ID ?? "",
-  /** Testnet first so the default Builder Rootcamp schema (31) loads without switching. */
-  chains: [rsktestnet, rootstockMainnet],
+  /** Mainnet first so production visitors load the live Hall of Fame (30) without switching. */
+  chains: [rootstockMainnet, rsktestnet],
   transports: {
     [rsktestnet.id]: transportFromRpcUrls(getRootstockTestnetRpcUrls()),
     [rootstockMainnet.id]: transportFromRpcUrls(getRootstockMainnetRpcUrls()),
