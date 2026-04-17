@@ -136,6 +136,34 @@ function readOptionalBigIntEnv(value: string | undefined): bigint | undefined {
 }
 
 /**
+ * Optional testnet overrides from env (e.g. Vercel).
+ * Useful when rotating schema UID / start block without waiting for a code release.
+ */
+function mergeTestnetFromEnv(): void {
+  const cfg = EAS_CHAIN_CONFIG[31];
+  if (!cfg) return;
+
+  const easOverride = readOptionalAddressEnv(
+    import.meta.env.VITE_EAS_CONTRACT_TESTNET,
+  );
+  const schema = readOptionalHexEnv(import.meta.env.VITE_SCHEMA_UID_TESTNET);
+  const start = readOptionalBigIntEnv(
+    import.meta.env.VITE_EAS_START_BLOCK_TESTNET,
+  );
+  const base =
+    import.meta.env.VITE_RAS_ATTESTATION_BASE_TESTNET?.trim() ||
+    cfg.rasAttestationBaseUrl;
+
+  EAS_CHAIN_CONFIG[31] = {
+    ...cfg,
+    easAddress: easOverride ?? cfg.easAddress,
+    schemaUid: schema ?? cfg.schemaUid,
+    startBlock: start !== undefined ? start : cfg.startBlock,
+    rasAttestationBaseUrl: base.replace(/\/$/, ""),
+  };
+}
+
+/**
  * Optional mainnet overrides from env (e.g. Vercel). Defaults are built in for chain 30;
  * set `VITE_SCHEMA_UID_MAINNET` and/or `VITE_EAS_START_BLOCK_MAINNET` only if the on-chain
  * schema changes and you cannot redeploy immediately. If you override the schema UID, the
@@ -165,6 +193,7 @@ function mergeMainnetFromEnv(): void {
   };
 }
 
+mergeTestnetFromEnv();
 mergeMainnetFromEnv();
 
 export function getEasConfig(chainId: number): EasChainConfig | undefined {

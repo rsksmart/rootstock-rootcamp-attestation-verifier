@@ -75,6 +75,10 @@ Deployed as a static **Vite + React** SPA; designed for **[Vercel](https://verce
 |----------|----------|--------|
 | `VITE_WC_PROJECT_ID` | Yes (wallets) | WalletConnect project ID. Public in the bundle. |
 | `VITE_ROOTSTOCK_TESTNET_RPC` | Strongly recommended | RPC URL with `eth_getLogs` support for the default testnet Hall of Fame. |
+| `VITE_SCHEMA_UID_TESTNET` | Optional override | Override testnet schema UID when rotating cohorts without shipping code first. |
+| `VITE_EAS_START_BLOCK_TESTNET` | Optional override | Decimal block to begin scanning testnet logs for the override schema. |
+| `VITE_EAS_CONTRACT_TESTNET` | Optional | Override testnet EAS contract address if needed. |
+| `VITE_RAS_ATTESTATION_BASE_TESTNET` | Optional | Override testnet explorer base URL for attestation links. |
 | `VITE_SITE_URL` | Recommended for production | HTTPS origin, no trailing slash. Used at **build** time for Open Graph, Twitter cards, and canonical URL. |
 | `VITE_SCHEMA_UID_MAINNET` | Optional override | Defaults are baked in for the current graduate schema; set only if you change the on-chain schema without shipping new code. |
 | `VITE_EAS_START_BLOCK_MAINNET` | Optional override | Same as above; decimal registration block from the RAS explorer. |
@@ -96,7 +100,7 @@ Official Builder Rootcamp on-chain attestations are expected to be signed by the
 2. In Vercel: **Add New Project**, import the repo. Framework preset: **Vite**.
 3. **Environment Variables:** add the same keys you use locally (`VITE_*`). Use the **Production** environment for your live site. Optionally use **Preview** for PRs with separate RPC keys or without `VITE_SITE_URL` if you do not care about preview OG URLs.
 4. **Deploy.** After any change to `VITE_*`, trigger a **new deployment** so the client bundle is rebuilt.
-5. **Mainnet:** schema UID and log scan start block are **defaults in `src/constants/eas.ts`**—a normal Vercel deploy picks them up when you merge to the connected branch. Add `VITE_ROOTSTOCK_MAINNET_RPC` in Production for reliable indexing. Use `VITE_SCHEMA_UID_MAINNET` / `VITE_EAS_START_BLOCK_MAINNET` only to override without a code change.
+5. **Mainnet/Testnet schemas:** defaults are in `src/constants/eas.ts` for both chains. If you rotate schema before shipping code, set `VITE_SCHEMA_UID_*` + `VITE_EAS_START_BLOCK_*` env overrides and redeploy. Add `VITE_ROOTSTOCK_MAINNET_RPC` and `VITE_ROOTSTOCK_TESTNET_RPC` in Production for reliable indexing.
 
 ### Production checklist
 
