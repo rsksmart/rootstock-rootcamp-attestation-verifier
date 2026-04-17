@@ -193,6 +193,7 @@ function mergeMainnetFromEnv(): void {
   };
 }
 
+// Apply per-chain env overrides once at startup (testnet and mainnet separately).
 mergeTestnetFromEnv();
 mergeMainnetFromEnv();
 
