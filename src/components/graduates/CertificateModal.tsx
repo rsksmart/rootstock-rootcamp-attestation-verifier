@@ -447,27 +447,27 @@ export function CertificateModal({
           <details className="group rounded-xl border border-zinc-800 bg-zinc-950/80 open:border-amber-900/40">
             <summary className="cursor-pointer list-none px-4 py-3 text-center text-sm font-medium text-amber-200/80 transition-colors hover:text-amber-100 [&::-webkit-details-marker]:hidden">
               <span className="underline-offset-2 group-open:underline">
-                On-chain verification and technical details
+                Verification details
               </span>
             </summary>
             <div className="space-y-3 border-t border-zinc-800 px-4 py-4 text-left text-xs text-zinc-400">
-              <p className="font-medium text-zinc-300">Decoded attestation fields</p>
+              <p className="font-medium text-zinc-300">
+                Details recorded on chain
+              </p>
               <p>
-                <span className="text-zinc-500">participantName: </span>
+                <span className="text-zinc-500">Graduate name: </span>
                 <span className="text-zinc-300">
                   {graduate.decoded.participantName}
                 </span>
               </p>
               <p>
-                <span className="text-zinc-500">courseName: </span>
+                <span className="text-zinc-500">Program: </span>
                 <span className="text-zinc-300">
                   {graduate.decoded.courseName}
                 </span>
               </p>
               <p>
-                <span className="text-zinc-500">
-                  completionYear (schema field: completionDate):{" "}
-                </span>
+                <span className="text-zinc-500">Completion year: </span>
                 <span className="font-mono text-zinc-300">
                   {graduate.decoded.completionDate.toString()}
                 </span>
@@ -478,25 +478,25 @@ export function CertificateModal({
                 </span>
               </p>
               <p>
-                <span className="text-zinc-500">credentialId: </span>
+                <span className="text-zinc-500">Credential ID: </span>
                 <span className="font-mono text-zinc-300">
                   {graduate.decoded.credentialId}
                 </span>
               </p>
               <p>
-                <span className="text-zinc-500">isGraduated: </span>
+                <span className="text-zinc-500">Graduation status: </span>
                 <span className="text-zinc-300">
-                  {graduate.decoded.isGraduated ? "true" : "false"}
+                  {graduate.decoded.isGraduated ? "Graduated" : "Not graduated"}
                 </span>
               </p>
               <p>
-                <span className="text-zinc-500">projectTitle: </span>
+                <span className="text-zinc-500">Capstone title: </span>
                 <span className="text-zinc-300">
                   {graduate.decoded.projectTitle.trim() || "—"}
                 </span>
               </p>
               <p>
-                <span className="text-zinc-500">projectURL: </span>
+                <span className="text-zinc-500">Capstone link: </span>
                 {projectUrlHref ? (
                   <a
                     href={projectUrlHref}
@@ -513,7 +513,7 @@ export function CertificateModal({
                 )}
               </p>
               <p>
-                <span className="text-zinc-500">Verification URL: </span>
+                <span className="text-zinc-500">Public verification link: </span>
                 <a
                   href={explorerHref}
                   target="_blank"
@@ -524,31 +524,31 @@ export function CertificateModal({
                 </a>
               </p>
               <p>
-                <span className="text-zinc-500">Attestation UID: </span>
+                <span className="text-zinc-500">Attestation ID (UID): </span>
                 <span className="break-all font-mono text-zinc-300">
                   {graduate.uid}
                 </span>
               </p>
               <p>
-                <span className="text-zinc-500">Recipient: </span>
+                <span className="text-zinc-500">Recipient wallet: </span>
                 <span className="break-all font-mono text-zinc-300">
                   {graduate.recipient}
                 </span>
               </p>
               <p>
-                <span className="text-zinc-500">Attester: </span>
+                <span className="text-zinc-500">Issued by wallet: </span>
                 <span className="break-all font-mono text-zinc-300">
                   {graduate.attester}
                 </span>
                 {graduate.attester.toLowerCase() ===
                 ROOTCAMP_OFFICIAL_ATTESTER.toLowerCase() ? (
                   <span className="ml-1 text-emerald-500/90">
-                    (matches documented official attester)
+                    (matches the documented official issuer)
                   </span>
                 ) : null}
               </p>
               <p className="text-zinc-500">
-                Short address: {formatAddress(graduate.recipient)}
+                Short recipient address: {formatAddress(graduate.recipient)}
               </p>
             </div>
           </details>

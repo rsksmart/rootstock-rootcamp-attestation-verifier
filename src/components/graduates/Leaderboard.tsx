@@ -41,14 +41,15 @@ export function Leaderboard(): JSX.Element {
     }
     if (!error) return null;
     const msg =
-      error instanceof Error ? error.message : "Failed to load attestations.";
+      error instanceof Error ? error.message : "We could not load attestations.";
     if (
       msg.toLowerCase().includes("getlogs") ||
-      msg.toLowerCase().includes("does not exist")
+      msg.toLowerCase().includes("does not exist") ||
+      msg.toLowerCase().includes("missing eas")
     ) {
-      return `${msg} Your RPC may not expose eth_getLogs. Set VITE_ROOTSTOCK_TESTNET_RPC in .env to a provider that supports log queries.`;
+      return "We could not load the Hall of Fame list right now. Please refresh and try again. If this keeps happening, paste your full attestation UID in search to open your certificate directly.";
     }
-    return msg;
+    return "We hit a temporary issue loading attestations. Please refresh and try again in a moment.";
   }, [chainSupported, chainId, error]);
 
   return (
@@ -272,23 +273,10 @@ export function Leaderboard(): JSX.Element {
             className="mb-6 rounded-lg border border-zinc-700 bg-zinc-900/60 px-4 py-3 text-sm text-zinc-300"
             role="status"
           >
-            No attestations were found via chain logs. Rootstock’s public HTTP
-            node (<code className="text-zinc-400">public-node.testnet.rsk.co</code>)
-            does not expose <code className="text-amber-200/90">eth_getLogs</code>{" "}
-            (JSON-RPC -32601). Prefer{" "}
-            <a
-              className="text-amber-400 underline-offset-2 hover:underline"
-              href="https://dev.rootstock.io/developers/rpc-api/rootstock/setup/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Rootstock RPC Service
-            </a>{" "}
-            via <code className="text-amber-200/90">VITE_ROOTSTOCK_TESTNET_RPC</code>{" "}
-            in <code className="text-zinc-400">.env</code>, or dRPC fallbacks. You can always paste a
-            full <strong className="text-zinc-200">attestation UID</strong> to
-            load one certificate; your wallet will then show it under My
-            attestations on return visits (saved in this browser).
+            We could not load the Hall of Fame list right now. If you have your
+            certificate link, paste the full{" "}
+            <strong className="text-zinc-200">attestation UID</strong> in search
+            to open it directly. You can also refresh and try again in a moment.
           </div>
         )}
 
