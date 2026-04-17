@@ -149,6 +149,10 @@ type AttestationTuple = {
  * Viem `readContract` / `multicall` return `getAttestation` as a named object, not a positional array.
  */
 function normalizeGetAttestationOutput(raw: unknown): AttestationTuple | null {
+  if (Array.isArray(raw) && raw.length === 1) {
+    return normalizeGetAttestationOutput(raw[0]);
+  }
+
   if (Array.isArray(raw) && raw.length >= 10) {
     return {
       uid: raw[0] as Hex,
@@ -164,6 +168,10 @@ function normalizeGetAttestationOutput(raw: unknown): AttestationTuple | null {
 
   if (raw && typeof raw === "object" && !Array.isArray(raw)) {
     const o = raw as Record<string, unknown>;
+    const nested = o.attestation;
+    if (nested && typeof nested === "object") {
+      return normalizeGetAttestationOutput(nested);
+    }
     const uid = o.uid;
     const schema = o.schema;
     const data = o.data;

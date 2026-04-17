@@ -135,28 +135,34 @@ function readOptionalBigIntEnv(value: string | undefined): bigint | undefined {
   return BigInt(value);
 }
 
+type MergeFromEnvOptions = {
+  chainId: 30 | 31;
+  easContractEnv?: string;
+  schemaUidEnv?: string;
+  startBlockEnv?: string;
+  attestationBaseEnv?: string;
+};
+
 /**
- * Optional mainnet overrides from env (e.g. Vercel). Defaults are built in for chain 30;
- * set `VITE_SCHEMA_UID_MAINNET` and/or `VITE_EAS_START_BLOCK_MAINNET` only if the on-chain
- * schema changes and you cannot redeploy immediately. If you override the schema UID, the
- * registered schema string must still match `schemaRaw` in config (or decoding will fail).
+ * Merge optional chain overrides from env (e.g. Vercel).
+ * Keeps mainnet/testnet behavior consistent while avoiding repeated logic.
  */
-function mergeMainnetFromEnv(): void {
-  const cfg = EAS_CHAIN_CONFIG[30];
+function mergeChainFromEnv({
+  chainId,
+  easContractEnv,
+  schemaUidEnv,
+  startBlockEnv,
+  attestationBaseEnv,
+}: MergeFromEnvOptions): void {
+  const cfg = EAS_CHAIN_CONFIG[chainId];
   if (!cfg) return;
 
-  const easOverride = readOptionalAddressEnv(
-    import.meta.env.VITE_EAS_CONTRACT_MAINNET,
-  );
-  const schema = readOptionalHexEnv(import.meta.env.VITE_SCHEMA_UID_MAINNET);
-  const start = readOptionalBigIntEnv(
-    import.meta.env.VITE_EAS_START_BLOCK_MAINNET,
-  );
-  const base =
-    import.meta.env.VITE_RAS_ATTESTATION_BASE_MAINNET?.trim() ||
-    cfg.rasAttestationBaseUrl;
+  const easOverride = readOptionalAddressEnv(easContractEnv);
+  const schema = readOptionalHexEnv(schemaUidEnv);
+  const start = readOptionalBigIntEnv(startBlockEnv);
+  const base = attestationBaseEnv?.trim() || cfg.rasAttestationBaseUrl;
 
-  EAS_CHAIN_CONFIG[30] = {
+  EAS_CHAIN_CONFIG[chainId] = {
     ...cfg,
     easAddress: easOverride ?? cfg.easAddress,
     schemaUid: schema ?? cfg.schemaUid,
@@ -165,7 +171,22 @@ function mergeMainnetFromEnv(): void {
   };
 }
 
-mergeMainnetFromEnv();
+// Apply per-chain env overrides once at startup (testnet and mainnet separately).
+mergeChainFromEnv({
+  chainId: 31,
+  easContractEnv: import.meta.env.VITE_EAS_CONTRACT_TESTNET,
+  schemaUidEnv: import.meta.env.VITE_SCHEMA_UID_TESTNET,
+  startBlockEnv: import.meta.env.VITE_EAS_START_BLOCK_TESTNET,
+  attestationBaseEnv: import.meta.env.VITE_RAS_ATTESTATION_BASE_TESTNET,
+});
+
+mergeChainFromEnv({
+  chainId: 30,
+  easContractEnv: import.meta.env.VITE_EAS_CONTRACT_MAINNET,
+  schemaUidEnv: import.meta.env.VITE_SCHEMA_UID_MAINNET,
+  startBlockEnv: import.meta.env.VITE_EAS_START_BLOCK_MAINNET,
+  attestationBaseEnv: import.meta.env.VITE_RAS_ATTESTATION_BASE_MAINNET,
+});
 
 export function getEasConfig(chainId: number): EasChainConfig | undefined {
   return EAS_CHAIN_CONFIG[chainId];
