@@ -8,7 +8,7 @@ Deployed as a static **Vite + React** SPA; designed for **[Vercel](https://verce
 
 ## Features
 
-- Public leaderboard of Builder Rootcamp attestations (testnet by default; mainnet when configured).
+- Public leaderboard of Builder Rootcamp attestations (mainnet by default; Rootstock Testnet still available in the wallet network picker).
 - Search by wallet address, name, credential ID, or attestation UID.
 - Wallet connect (RainbowKit) and **My attestations** for the connected recipient address (with optional UID memory in `localStorage`).
 - Certificate modal: RAS explorer link, QR, branded layout layer, export helpers.
@@ -74,7 +74,7 @@ Deployed as a static **Vite + React** SPA; designed for **[Vercel](https://verce
 | Variable | Required | Notes |
 |----------|----------|--------|
 | `VITE_WC_PROJECT_ID` | Yes (wallets) | WalletConnect project ID. Public in the bundle. |
-| `VITE_ROOTSTOCK_TESTNET_RPC` | Strongly recommended | RPC URL with `eth_getLogs` support for the default testnet Hall of Fame. |
+| `VITE_ROOTSTOCK_TESTNET_RPC` | Strongly recommended | RPC URL with `eth_getLogs` support when visitors switch to Rootstock Testnet (31). |
 | `VITE_SCHEMA_UID_TESTNET` | Optional override | Override testnet schema UID when rotating cohorts without shipping code first. |
 | `VITE_EAS_START_BLOCK_TESTNET` | Optional override | Decimal block to begin scanning testnet logs for the override schema. |
 | `VITE_EAS_CONTRACT_TESTNET` | Optional | Override testnet EAS contract address if needed. |
